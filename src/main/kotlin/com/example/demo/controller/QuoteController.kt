@@ -17,66 +17,66 @@ import com.example.demo.model.LikeRequest
 import com.example.demo.service.LikeNotFoundException
 
 @RestController
-@RequestMapping("/quotes")
 @Validated
 class QuoteController(
     private val quoteService: QuoteService
 ) {
     private val logger = LoggerFactory.getLogger(QuoteController::class.java)
 
-    @GetMapping
+    @GetMapping("/quotes")
     fun getQuotes(
         @RequestParam(defaultValue = "10") @Min(1) @Max(100) limit: Int,
         @RequestParam(defaultValue = "0") @Min(0) offset: Int,
-        @RequestParam(defaultValue = "likes") sortBy: String,
+        @RequestParam(name = "sort_by", defaultValue = "likes") sortBy: String,
         @RequestParam(defaultValue = "desc") order: String,
         @RequestParam(name = "user_id", required = false) userId: String?,
-        request: HttpServletRequest
+        @RequestHeader(name = "X-Request-Id") reqId: String,
     ): ResponseEntity<Any> {
-        logger.info("GET /quotes - limit: {}, offset: {}, sortBy: {}, order: {}, userId: {}",
-            limit, offset, sortBy, order, userId)
+        logger.info(
+            "GET /quotes - limit: {}, offset: {}, sortBy: {}, order: {}, userId: {}, reqId: {}",
+            limit, offset, sortBy, order, userId, reqId
+        )
 
         try {
             validateSortParams(sortBy, order)
-
             val quotes = quoteService.getQuotes(limit, offset, sortBy, order, userId)
             return ResponseEntity.ok(quotes)
         } catch (e: IllegalArgumentException) {
             val error = ApiError(
                 error = "invalid_parameter",
                 message = e.message ?: "Invalid parameter",
-                requestId = request.getAttribute("X-Request-Id") as? String
+                requestId = reqId
             )
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error)
         }
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/quotes/{id}")
     fun getQuote(
         @PathVariable id: String,
-        @RequestHeader(name = "X-User-Id", required = false) userId: String?,
-        request: HttpServletRequest
+        @RequestParam(name = "user_id", required = false) userId: String?,
+        @RequestHeader(name = "X-Request-Id") reqId: String,
     ): ResponseEntity<Any> {
-        logger.info("GET /quotes/{} - userId: {}", id, userId)
+        logger.info("GET /quotes/{} - userId: {}, reqId: {}", id, userId, reqId)
 
         try {
-            val quote = quoteService.getQuote(id, userId)
+            val quote = quoteService.getQuote(id, userId, reqId)
             return ResponseEntity.ok(quote)
         } catch (e: ExternalServiceException) {
             val error = ApiError(
                 error = "quote_not_found",
                 message = "Quote with id '$id' not found",
-                requestId = request.getAttribute("X-Request-Id") as? String
+                requestId = reqId
             )
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error)
         }
     }
 
-    @GetMapping("/top")
+    @GetMapping("/quotes/top")
     fun getTopQuotes(
         @RequestParam(defaultValue = "10") @Min(1) @Max(50) count: Int,
         @RequestParam(name = "user_id", required = false) userId: String?,
-        request: HttpServletRequest
+        @RequestHeader(name = "X-Request-Id") reqId: String,
     ): ResponseEntity<Any> {
         logger.info("GET /quotes/top - count: {}, userId: {}", count, userId)
 
@@ -87,63 +87,63 @@ class QuoteController(
             val error = ApiError(
                 error = "invalid_parameter",
                 message = e.message ?: "Invalid parameter",
-                requestId = request.getAttribute("X-Request-Id") as? String
+                requestId = reqId
             )
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error)
         }
     }
 
-    @PostMapping("/{id}/like")
+    @PostMapping("/quotes/{id}/like")
     fun likeQuote(
         @PathVariable id: String,
         @Valid @RequestBody likeRequest: LikeRequest,
-        request: HttpServletRequest
+        @RequestHeader(name = "X-Request-Id") reqId: String,
     ): ResponseEntity<Any> {
         logger.info("POST /quotes/{}/like - userId: {}", id, likeRequest.userId)
 
         try {
-            val response = quoteService.likeQuote(id, likeRequest.userId)
+            val response = quoteService.likeQuote(id, likeRequest.userId, reqId)
             return ResponseEntity.ok(response)
         } catch (e: LikeAlreadyExistsException) {
             val error = ApiError(
                 error = "like_already_exists",
                 message = e.message ?: "User has already liked this quote",
-                requestId = request.getAttribute("X-Request-Id") as? String
+                requestId = reqId
             )
             return ResponseEntity.status(HttpStatus.CONFLICT).body(error)
         } catch (e: ExternalServiceException) {
             val error = ApiError(
                 error = "quote_not_found",
                 message = "Quote with id '$id' not found",
-                requestId = request.getAttribute("X-Request-Id") as? String
+                requestId = reqId
             )
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error)
         }
     }
 
-    @DeleteMapping("/{id}/like")
+    @DeleteMapping("/quotes/{id}/like")
     fun unlikeQuote(
         @PathVariable id: String,
         @Valid @RequestBody likeRequest: LikeRequest,
-        request: HttpServletRequest
+        @RequestHeader(name = "X-Request-Id") reqId: String,
     ): ResponseEntity<Any> {
         logger.info("DELETE /quotes/{}/like - userId: {}", id, likeRequest.userId)
 
         try {
-            val response = quoteService.unlikeQuote(id, likeRequest.userId)
+            val response = quoteService.unlikeQuote(id, likeRequest.userId, reqId)
             return ResponseEntity.ok(response)
         } catch (e: LikeNotFoundException) {
             val error = ApiError(
                 error = "like_not_found",
                 message = e.message ?: "User has not liked this quote",
-                requestId = request.getAttribute("X-Request-Id") as? String
+                requestId = reqId
             )
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error)
         } catch (e: ExternalServiceException) {
             val error = ApiError(
                 error = "quote_not_found",
                 message = "Quote with id '$id' not found",
-                requestId = request.getAttribute("X-Request-Id") as? String
+                requestId = reqId
             )
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error)
         }

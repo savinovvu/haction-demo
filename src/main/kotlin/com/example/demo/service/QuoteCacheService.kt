@@ -44,42 +44,28 @@ class QuoteCacheService(
     }
 
     private fun fetchAndCacheQuote(id: String, requestId: String): Quote {
-        // Простая синхронизация по всему кэшу для данного ID
-        synchronized(quotesCache) {
-            // Double-check после получения блокировки
-            quotesCache[id]?.let { return it }
+        quotesCache[id]?.let { return it }
+        try {
+            val externalQuote = externalQuoteClient.getQuote(id, requestId)
+            externalApiCallsCounter.increment()
 
-            try {
-                val externalQuote = externalQuoteClient.getQuote(id, requestId)
-                externalApiCallsCounter.increment()
+            val quote = Quote(
+                id = externalQuote.id,
+                text = externalQuote.text,
+                author = externalQuote.author
+            )
 
-                val quote = Quote(
-                    id = externalQuote.id,
-                    text = externalQuote.text,
-                    author = externalQuote.author
-                )
+            quotesCache[quote.id] = quote
+            logger.info("Cached quote id: {}", quote.id)
 
-                quotesCache[quote.id] = quote
-                logger.info("Cached quote id: {}", quote.id)
-
-                return quote
-            } catch (e: Exception) {
-                meterRegistry.counter("external_api_calls_total", "status", "error").increment()
-                throw ExternalServiceException("Failed to fetch quote from external service: ${e.message}")
-            }
+            return quote
+        } catch (e: Exception) {
+            meterRegistry.counter("external_api_calls_total", "status", "error").increment()
+            throw ExternalServiceException("Failed to fetch quote from external service: ${e.message}")
         }
     }
 
     fun getAllQuotes(): List<Quote> = quotesCache.values.toList()
-
-    fun clearCache() {
-        quotesCache.clear()
-        logger.info("Cache cleared")
-    }
-
-    fun getCacheSize(): Int = quotesCache.size
-
-    fun getCachedQuote(id: String): Quote? = quotesCache[id]
 }
 
 class ExternalServiceException(message: String) : RuntimeException(message)

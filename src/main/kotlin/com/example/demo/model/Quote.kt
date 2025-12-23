@@ -1,6 +1,7 @@
 package com.example.demo.model
 
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicLong
 
 data class ExternalQuote(
     val id: String,
@@ -12,26 +13,9 @@ data class Quote(
     val id: String,
     val text: String,
     val author: String,
-    var likes: Long = 0,
-    var views: Long = 0,
-    val createdAt: Instant = Instant.now(),
-    var updatedAt: Instant = Instant.now()
-) {
-    fun incrementViews() {
-        views++
-        updatedAt = Instant.now()
-    }
-
-    fun incrementLikes() {
-        likes++
-        updatedAt = Instant.now()
-    }
-
-    fun decrementLikes() {
-        if (likes > 0) likes--
-        updatedAt = Instant.now()
-    }
-}
+    var likes: AtomicLong = AtomicLong(0),
+    var views: AtomicLong = AtomicLong(0),
+)
 
 data class QuoteResponse(
     val id: String,

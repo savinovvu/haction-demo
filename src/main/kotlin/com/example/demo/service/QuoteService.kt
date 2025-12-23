@@ -3,7 +3,6 @@ package com.example.demo.service
 import com.example.demo.model.LikeResponse
 import com.example.demo.model.QuoteResponse
 import com.example.demo.model.TopQuotesResponse
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -12,7 +11,6 @@ class QuoteService(
     private val quoteCacheService: QuoteCacheService,
     private val statisticsService: StatisticsService
 ) {
-    private val logger = LoggerFactory.getLogger(QuoteService::class.java)
 
     fun getQuotes(
         limit: Int = 10,
@@ -26,13 +24,13 @@ class QuoteService(
         // Sort quotes
         val sortedQuotes = when (sortBy.lowercase()) {
             "views" -> if (order.equals("asc", true))
-                allQuotes.sortedBy { it.views }
+                allQuotes.sortedBy { it.views.get() }
             else
-                allQuotes.sortedByDescending { it.views }
+                allQuotes.sortedByDescending { it.views.get() }
             else -> if (order.equals("asc", true))
-                allQuotes.sortedBy { it.likes }
+                allQuotes.sortedBy { it.likes.get() }
             else
-                allQuotes.sortedByDescending { it.likes }
+                allQuotes.sortedByDescending { it.likes.get() }
         }
 
         // Apply pagination
@@ -48,16 +46,15 @@ class QuoteService(
                 id = quote.id,
                 text = quote.text,
                 author = quote.author,
-                likes = quote.likes,
-                views = quote.views,
+                likes = quote.likes.get(),
+                views = quote.views.get(),
                 userLiked = userId?.let { statisticsService.hasUserLiked(it, quote.id) }
             )
         }
     }
 
-    fun getQuote(id: String, userId: String? = null): QuoteResponse {
-        val requestId = UUID.randomUUID().toString()
-        val quote = quoteCacheService.getQuote(id, requestId)
+    fun getQuote(id: String, userId: String? = null, reqId: String): QuoteResponse {
+        val quote = quoteCacheService.getQuote(id, reqId)
 
         // Increment views
         statisticsService.addView(quote)
@@ -66,8 +63,8 @@ class QuoteService(
             id = quote.id,
             text = quote.text,
             author = quote.author,
-            likes = quote.likes,
-            views = quote.views,
+            likes = quote.likes.get(),
+            views = quote.views.get(),
             userLiked = userId?.let { statisticsService.hasUserLiked(it, quote.id) }
         )
     }
@@ -76,7 +73,7 @@ class QuoteService(
         val allQuotes = quoteCacheService.getAllQuotes()
 
         val topQuotes = allQuotes
-            .sortedByDescending { it.likes }
+            .sortedByDescending { it.likes.get() }
             .take(count)
             .map { quote ->
                 // Increment views for top quotes
@@ -86,8 +83,8 @@ class QuoteService(
                     id = quote.id,
                     text = quote.text,
                     author = quote.author,
-                    likes = quote.likes,
-                    views = quote.views,
+                    likes = quote.likes.get(),
+                    views = quote.views.get(),
                     userLiked = userId?.let { statisticsService.hasUserLiked(it, quote.id) }
                 )
             }
@@ -98,9 +95,8 @@ class QuoteService(
         )
     }
 
-    fun likeQuote(quoteId: String, userId: String): LikeResponse {
-        val requestId = UUID.randomUUID().toString()
-        val quote = quoteCacheService.getQuote(quoteId, requestId)
+    fun likeQuote(quoteId: String, userId: String, reqId: String): LikeResponse {
+        val quote = quoteCacheService.getQuote(quoteId, reqId)
 
         val success = statisticsService.addLike(quoteId, userId, quote)
 
@@ -110,7 +106,7 @@ class QuoteService(
                 message = "like_added_successfully",
                 quoteId = quoteId,
                 userId = userId,
-                likesCount = quote.likes,
+                likesCount = quote.likes.get(),
                 userLiked = true
             )
         } else {
@@ -118,9 +114,8 @@ class QuoteService(
         }
     }
 
-    fun unlikeQuote(quoteId: String, userId: String): LikeResponse {
-        val requestId = UUID.randomUUID().toString()
-        val quote = quoteCacheService.getQuote(quoteId, requestId)
+    fun unlikeQuote(quoteId: String, userId: String, reqId: String): LikeResponse {
+        val quote = quoteCacheService.getQuote(quoteId, reqId)
 
         val success = statisticsService.removeLike(quoteId, userId, quote)
 
@@ -130,7 +125,7 @@ class QuoteService(
                 message = "like_removed_successfully",
                 quoteId = quoteId,
                 userId = userId,
-                likesCount = quote.likes,
+                likesCount = quote.likes.get(),
                 userLiked = false
             )
         } else {

@@ -31,9 +31,8 @@ class StatisticsService(
     }
 
     fun addView(quote: Quote) {
-        synchronized(quote) {
-            quote.incrementViews()
-        }
+        quote.likes.incrementAndGet()
+
         quoteViewsCounter.increment()
 
         // Update quote-specific counter
@@ -42,48 +41,39 @@ class StatisticsService(
     }
 
     fun addLike(quoteId: String, userId: String, quote: Quote): Boolean {
-        synchronized(userLikes) {
-            val userLikedQuotes = userLikes.computeIfAbsent(userId) { mutableSetOf() }
+        val userLikedQuotes = userLikes.computeIfAbsent(userId) { ConcurrentHashMap.newKeySet<String>() }
 
-            return if (userLikedQuotes.contains(quoteId)) {
-                logger.info("User {} already liked quote {}", userId, quoteId)
-                false
-            } else {
-                userLikedQuotes.add(quoteId)
-                synchronized(quote) {
-                    quote.incrementLikes()
-                }
-                quoteLikesCounter.increment()
+        return if (userLikedQuotes.contains(quoteId)) {
+            logger.info("User {} already liked quote {}", userId, quoteId)
+            false
+        } else {
+            userLikedQuotes.add(quoteId)
+            quote.likes.incrementAndGet()
+            quoteLikesCounter.increment()
 
-                // Update quote-specific counter
-                meterRegistry.counter("quote_likes_by_id", "quote_id", quoteId).increment()
+            // Update quote-specific counter
+            meterRegistry.counter("quote_likes_by_id", "quote_id", quoteId).increment()
 
-                logger.info("User {} liked quote {}, total likes: {}", userId, quoteId, quote.likes)
-                true
-            }
+            logger.info("User {} liked quote {}, total likes: {}", userId, quoteId, quote.likes)
+            true
         }
     }
 
     fun removeLike(quoteId: String, userId: String, quote: Quote): Boolean {
-        synchronized(userLikes) {
-            val userLikedQuotes = userLikes[userId] ?: return false
+        val userLikedQuotes = userLikes[userId] ?: return false
 
-            return if (userLikedQuotes.remove(quoteId)) {
-                synchronized(quote) {
-                    quote.decrementLikes()
-                }
+        return if (userLikedQuotes.remove(quoteId)) {
+            quote.likes.decrementAndGet()
 
-                // Clean up empty user sets
-                if (userLikedQuotes.isEmpty()) {
-                    userLikes.remove(userId)
-                }
-
-                logger.info("User {} removed like from quote {}, total likes: {}", userId, quoteId, quote.likes)
-                true
-            } else {
-                logger.info("User {} didn't like quote {}", userId, quoteId)
-                false
+            if (userLikedQuotes.isEmpty()) {
+                userLikes.remove(userId)
             }
+
+            logger.info("User {} removed like from quote {}, total likes: {}", userId, quoteId, quote.likes)
+            true
+        } else {
+            logger.info("User {} didn't like quote {}", userId, quoteId)
+            false
         }
     }
 
