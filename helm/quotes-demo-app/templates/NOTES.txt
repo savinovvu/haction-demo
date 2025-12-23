@@ -1,0 +1,11 @@
+Приложение {{ .Chart.Name }} установлено в неймспейс {{ .Release.Namespace }} как {{ include "quotes-demo-app.fullname" . }}.
+  ⚡️ Версия чарта: {{ .Chart.Version }}
+  ⚡️ Версия образа: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+  ⚡️ Версия приложения: {{ .Chart.AppVersion }}
+
+Получи доступ к API по адресу:
+{{- if .Values.ingress.enabled }}
+  🌏 http://{{ .Values.ingress.host }}
+{{- else }}
+  ⚡️ kubectl port-forward service/{{ include "quotes-demo-app.fullname" . }} http
+{{- end }}

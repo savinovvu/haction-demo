@@ -1,0 +1,7 @@
+apiVersion: v2
+name: quotes-demo-app
+description: Spring Boot MVC Application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+icon: https://angular.io/assets/images/logos/angular/angular.svg
