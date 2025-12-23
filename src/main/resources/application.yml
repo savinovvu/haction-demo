@@ -1,6 +1,9 @@
 spring:
   application:
     name: quote-stats-service
+  cloud:
+    loadbalancer:
+      enabled: false
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -22,3 +25,6 @@ management:
     web:
       exposure:
         include: health,metrics,prometheus
+
+# external.quote.service.url:
+
