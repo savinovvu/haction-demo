@@ -16,9 +16,3 @@ fun main(args: Array<String>) {
     runApplication<DemoApplication>(*args)
 }
 
-@Bean
-fun jsonCustomizer(): Jackson2ObjectMapperBuilderCustomizer {
-    return Jackson2ObjectMapperBuilderCustomizer { builder: Jackson2ObjectMapperBuilder ->
-        builder.propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-    }
-}
