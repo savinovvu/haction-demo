@@ -31,7 +31,7 @@ class StatisticsService(
     }
 
     fun addView(quote: Quote) {
-        quote.likes.incrementAndGet()
+        quote.views.incrementAndGet()
 
         quoteViewsCounter.increment()
 
@@ -79,18 +79,5 @@ class StatisticsService(
 
     fun hasUserLiked(userId: String, quoteId: String): Boolean {
         return userLikes[userId]?.contains(quoteId) ?: false
-    }
-
-    fun getUserLikes(userId: String): Set<String> {
-        return userLikes[userId]?.toSet() ?: emptySet()
-    }
-
-    fun getTotalLikes(): Long = userLikes.values.sumOf { it.size.toLong() }
-
-    fun getTotalUsers(): Int = userLikes.size
-
-    fun clearStatistics() {
-        userLikes.clear()
-        logger.info("Statistics cleared")
     }
 }
