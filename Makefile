@@ -2,7 +2,7 @@
 
 CHART_NAME = quotes-demo-app
 CHART_PATH = helm/$(CHART_NAME)
-RELEASE_NAME = demo-app
+RELEASE_NAME = haction
 NAMESPACE = ufr-uspil2-copy1
 
 lint:

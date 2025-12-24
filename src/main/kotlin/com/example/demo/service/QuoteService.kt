@@ -4,7 +4,6 @@ import com.example.demo.model.LikeResponse
 import com.example.demo.model.QuoteResponse
 import com.example.demo.model.TopQuotesResponse
 import org.springframework.stereotype.Service
-import java.util.UUID
 
 @Service
 class QuoteService(

@@ -26,5 +26,4 @@ management:
       exposure:
         include: health,metrics,prometheus
 
-# external.quote.service.url:
 
