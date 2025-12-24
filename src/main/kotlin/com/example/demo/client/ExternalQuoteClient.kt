@@ -14,7 +14,7 @@ import java.util.UUID
 
 @FeignClient(
     name = "externalQuoteService",
-    url = "\${external.quote.service.url:http://haction-quotes-api",
+    url = "\${external.quote.service.url:http://haction-quotes-api}",
     configuration = [FeignConfig::class]
 )
 interface ExternalQuoteClient {
